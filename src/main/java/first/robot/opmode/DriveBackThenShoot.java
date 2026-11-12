@@ -1,13 +1,11 @@
 package first.robot.opmode;
 
-import org.wpilib.command3.Command;
-import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
-import org.wpilib.opmode.PeriodicOpMode;
+import static org.wpilib.units.Units.Seconds;
 
 import first.robot.Robot;
-
-import static org.wpilib.units.Units.Seconds;
+import org.wpilib.command3.Command;
+import org.wpilib.command3.Scheduler;
+import org.wpilib.opmode.PeriodicOpMode;
 
 class DriveBackThenShoot extends PeriodicOpMode {
   private final Robot robot;
@@ -18,14 +16,17 @@ class DriveBackThenShoot extends PeriodicOpMode {
   }
 
   public Command autoCommand() {
-    return Command.noRequirements (coroutine -> {
-      coroutine.await(robot.drivetrain.arcadeDrive(() -> -0.2, () -> 0).withTimeout(Seconds.of(2)));
-      coroutine.awaitAll(robot.intakeLauncher.shoot(), robot.feeder.feed());
-    }).named("DriveBackThenShoot");
+    return Command.noRequirements(
+            coroutine -> {
+              coroutine.await(
+                  robot.drivetrain.arcadeDrive(() -> -0.2, () -> 0).withTimeout(Seconds.of(2)));
+              coroutine.awaitAll(robot.intakeLauncher.shoot(), robot.feeder.feed());
+            })
+        .named("DriveBackThenShoot");
   }
 
-    @Override
-    public void start() {
-      Scheduler.getDefault().schedule(autoCommand());
-}
+  @Override
+  public void start() {
+    Scheduler.getDefault().schedule(autoCommand());
+  }
 }

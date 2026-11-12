@@ -1,7 +1,12 @@
-  package first.robot.Mechanisms;
+package first.robot.Mechanisms;
 
+import com.revrobotics.PersistMode;
+import com.revrobotics.ResetMode;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.config.SparkMaxConfig;
+import first.robot.simulation.DrivetrainSim;
 import java.util.function.DoubleSupplier;
-
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.drive.DifferentialDrive;
@@ -10,31 +15,19 @@ import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.hardware.imu.OnboardIMU;
 import org.wpilib.hardware.imu.OnboardIMU.MountOrientation;
 
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.config.SparkMaxConfig;
+public class Drivetrain implements Mechanism {
+  private final SparkMax leftLeader = new SparkMax(CANPort.CAN_S0, 0, MotorType.kBrushless);
+  private final SparkMax leftFollower = new SparkMax(CANPort.CAN_S0, 1, MotorType.kBrushless);
+  private final SparkMax rightLeader = new SparkMax(CANPort.CAN_S0, 2, MotorType.kBrushless);
+  private final SparkMax rightFollower = new SparkMax(CANPort.CAN_S0, 3, MotorType.kBrushless);
+  private final DifferentialDrive differentialDrive =
+      new DifferentialDrive(leftLeader::setThrottle, rightLeader::setThrottle);
+  private final OnboardIMU imu = new OnboardIMU(MountOrientation.FLAT);
 
-import first.robot.simulation.DrivetrainSim;
-import com.revrobotics.PersistMode;
-import com.revrobotics.ResetMode;
+  private final DrivetrainSim drivetrainSim = new DrivetrainSim(leftLeader, rightLeader);
 
-import first.robot.simulation.FuelSim;
-import first.robot.simulation.SingleFlywheelSim;
-import org.wpilib.framework.OpModeRobot;
-
-
- public class Drivetrain implements Mechanism {
-    private final SparkMax leftLeader = new SparkMax(CANPort.CAN_S0, 0, MotorType.kBrushless);
-    private final SparkMax leftFollower = new SparkMax(CANPort.CAN_S0, 1, MotorType.kBrushless);
-    private final SparkMax rightLeader = new SparkMax(CANPort.CAN_S0, 2, MotorType.kBrushless);
-    private final SparkMax rightFollower = new SparkMax(CANPort.CAN_S0, 3, MotorType.kBrushless);
-    private final DifferentialDrive differentialDrive = new DifferentialDrive(leftLeader::setThrottle, rightLeader::setThrottle);
-    private final OnboardIMU imu = new OnboardIMU(MountOrientation.FLAT);
-
-    private final DrivetrainSim drivetrainSim = new DrivetrainSim(leftLeader, rightLeader);
-
-    public Drivetrain() {
-     SparkMaxConfig leftConfig = new SparkMaxConfig();
+  public Drivetrain() {
+    SparkMaxConfig leftConfig = new SparkMaxConfig();
     leftConfig.inverted(true);
     leftLeader.configure(
         leftConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
@@ -52,30 +45,33 @@ import org.wpilib.framework.OpModeRobot;
         ResetMode.kResetSafeParameters,
         PersistMode.kPersistParameters);
 
-        setDefaultCommand(idle());
-    }
-
-      public void periodic() { // Update the simulation
-       if (RobotBase.isSimulation()) {
-       drivetrainSim.periodic();
-      }
+    setDefaultCommand(idle());
   }
 
-   public Command idle() {
-        return run (coroutine-> {
+  public void periodic() { // Update the simulation
+    if (RobotBase.isSimulation()) {
+      drivetrainSim.periodic();
+    }
+  }
+
+  public Command idle() {
+    return run(coroutine -> {
           while (true) {
             differentialDrive.arcadeDrive(0, 0); // Set the motors to idle
             coroutine.yield(); // Yield to allow other commands to run
           }
-        }).named("idle");
-      }
+        })
+        .named("idle");
+  }
 
-      public Command arcadeDrive(DoubleSupplier forwardThrottle, DoubleSupplier rotationThrottle) {
-        return run (coroutine-> {
+  public Command arcadeDrive(DoubleSupplier forwardThrottle, DoubleSupplier rotationThrottle) {
+    return run(coroutine -> {
           while (true) {
-            differentialDrive.arcadeDrive(forwardThrottle.getAsDouble(), rotationThrottle.getAsDouble());
+            differentialDrive.arcadeDrive(
+                forwardThrottle.getAsDouble(), rotationThrottle.getAsDouble());
             coroutine.yield(); // Yield to allow other commands to run
           }
-        }).named("arcadeDrive");
-      }
- }
+        })
+        .named("arcadeDrive");
+  }
+}
